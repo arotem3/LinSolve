@@ -1,0 +1,6 @@
+[submodule "LinSolve/numcepts"]
+	path = LinSolve/numcepts
+	url = https://github.com/arotem3/numcepts.git
+[submodule "LinSolve/TensorView"]
+	path = LinSolve/TensorView
+	url = https://github.com/arotem3/TensorView.git
