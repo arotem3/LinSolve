@@ -15,11 +15,11 @@ set(CMAKE_INSTALL_INCLUDEDIR "include")
 set(CMAKE_INSTALL_LIBDIR "lib")
 
 # Define the source and header directories
-set(LINSOLVE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/source")
-set(LINSOLVE_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/LinSolve")
-set(LINSOLVE_TEST_DIR "${CMAKE_SOURCE_DIR}/test")
-set(LINSOLVE_TENSORVIEW_DIR "${CMAKE_SOURCE_DIR}/LinSolve/TensorView")
-set(LINSOLVE_NUMCEPTS_DIR "${CMAKE_SOURCE_DIR}/LinSolve/numcepts")
+set(LINSOLVE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/source")
+set(LINSOLVE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/LinSolve")
+set(LINSOLVE_TEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test")
+set(LINSOLVE_TENSORVIEW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/LinSolve/TensorView")
+set(LINSOLVE_NUMCEPTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/LinSolve/numcepts")
 
 # Find LAPACK
 find_package(LAPACK REQUIRED)
@@ -34,12 +34,7 @@ file(GLOB LINSOLVE_SOURCES "${LINSOLVE_SOURCE_DIR}/*.cpp")
 add_library(linsolve STATIC ${LINSOLVE_SOURCES})
 
 # Set the include directories for both the library and the tests
-target_include_directories(linsolve
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}  # This makes the root project directory accessible for the source files
-    PUBLIC
-        ${LINSOLVE_INCLUDE_DIR}  # Public for use by other targets, including tests
-)
+target_include_directories(linsolve PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link the LAPACK library
 target_link_libraries(linsolve PRIVATE LAPACK::LAPACK)
@@ -76,7 +71,7 @@ foreach(TEST_FILE ${TEST_SOURCES})
     # Set the include directories for the test executables
     target_include_directories(${TEST_NAME}
         PRIVATE
-            ${CMAKE_SOURCE_DIR}      # Ensure test executables can access the root project directory
+            ${CMAKE_CURRENT_SOURCE_DIR}      # Ensure test executables can access the root project directory
     )
 
     # Link test executables with the LinSolve library and LAPACK
@@ -86,8 +81,3 @@ foreach(TEST_FILE ${TEST_SOURCES})
     add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_BINARY_DIR}/tests/${TEST_NAME})
 endforeach()
 
-# Optionally, you can add a custom target to run all tests
-add_custom_target(run_tests
-    COMMAND ${CMAKE_CTEST_COMMAND}
-    DEPENDS ${TEST_SOURCES}
-)
