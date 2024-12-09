@@ -4,5 +4,6 @@
 #include "LinSolve/linalg.hpp"
 #include "LinSolve/ProgressBar.hpp"
 #include "LinSolve/gmres.hpp"
+#include "LinSolve/cg.hpp"
 
 #endif

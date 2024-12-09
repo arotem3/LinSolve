@@ -82,8 +82,8 @@ foreach(TEST_FILE ${TEST_SOURCES})
     # Link test executables with the LinSolve library and LAPACK
     target_link_libraries(${TEST_NAME} PRIVATE linsolve LAPACK::LAPACK)
 
-    # Add the test
-    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    set_target_properties(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
+    add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_BINARY_DIR}/tests/${TEST_NAME})
 endforeach()
 
 # Optionally, you can add a custom target to run all tests

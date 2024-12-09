@@ -74,8 +74,9 @@ namespace linsol
     SolverResult result;
     result.residual_norm.reserve(options.maximum_iterations + 1);
     result.time.reserve(options.maximum_iterations + 1);
+    result.num_iter = 0;
     result.num_matvec = 0;
-    result.success = false;
+    result.flag = 1;
 
     A(x, r.data());
     result.num_matvec++;
@@ -91,7 +92,7 @@ namespace linsol
 
     if (rnrm < options.relative_tolerance * bnrm + options.absolute_tolerance)
     {
-      result.success = true;
+      result.flag = true;
 
       if (options.verbose)
       {
@@ -177,28 +178,33 @@ namespace linsol
       if (options.verbose == 1)
       {
         ++bar;
-        std::cout << bar.get() << " rel. res. = " << std::setw(10) << rnrm / bnrm << "\r" << std::flush;
+        std::cout << bar.get() << " : ||b - A * x|| / ||b|| = " << std::setw(10) << rnrm / bnrm << "\r" << std::flush;
       }
       else if (options.verbose >= 2)
       {
-        std::cout << "iteration " << std::setw(10) << it + 1 << " / " << options.maximum_iterations << " || rel. res. = " << std::setw(10) << rnrm / bnrm << std::endl;
+        std::cout << "iteration " << std::setw(10) << it + 1 << " / " << options.maximum_iterations << " : ||b - A * x|| / ||b|| = " << std::setw(10) << rnrm / bnrm << std::endl;
       }
 
       if (rnrm < options.relative_tolerance * bnrm + options.absolute_tolerance)
       {
-        result.success = true;
+        result.flag = 0;
         break;
       }
-      if (result.time.back() > options.maximum_seconds)
+      if (dur > options.maximum_seconds)
+      {
+        result.flag = 2;
+        if (options.verbose)
+          std::cout << "\nMaximum time exceeded for cg. Stopping early." << std::endl;
         break;
+      }
     }
 
     if (options.verbose == 1)
       std::cout << std::endl;
     if (options.verbose)
     {
-      std::cout << "After " << it << " iterations, gmres achieved a relative residual of " << result.residual_norm.back() / bnrm << std::endl;
-      if (result.success)
+      std::cout << "After " << it << " iterations, gmres achieved a relative residual of " << rnrm / bnrm << std::endl;
+      if (result)
         std::cout << "gmres successfully converged within desired tolerance." << std::endl;
       else
         std::cout << "gmres failed to converge within desired tolerance." << std::endl;
@@ -212,6 +218,7 @@ namespace linsol
   SolverResult gmres(size_t n, scalar *x, Operator &&A, const scalar *b, Precond &&M, gmres_options<numcepts::precision_t<scalar>> options = {})
   {
     tensor::Vector<scalar> y(n);
+    tensor::Vector<scalar> r0(n);
 
     auto MA = [&](const scalar *u, scalar *v) mutable
     {
@@ -219,7 +226,9 @@ namespace linsol
       M(y.data(), v);
     };
 
-    return gmres(n, x, MA, b, options);
+    M(b, r0.data());
+
+    return gmres(n, x, MA, r0.data(), options);
   }
 } // namespace linsol
 
