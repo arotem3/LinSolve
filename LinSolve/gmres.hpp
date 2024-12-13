@@ -52,24 +52,40 @@ namespace linsol
     int verbose = 0; // 0 - no output; 1 - progress bar; 2 - one line per iteration.
   };
 
+  /**
+   * @brief solves A * x = b using the generalized minimal residual method.
+   *
+   * @tparam scalar float, double, complex<float>, complex<double>
+   * @tparam Operator invocable
+   * @param n number of unkowns. Length of x and r.
+   * @param x array of length n. On entry, initial guess. On exit, solution.
+   * @param A invocable object that computes A * x. Signature: void A(const scalar *x, scalar *y) such that y = A * x.
+   * @param b array of length n. The right hand side b.
+   * @param options
+   * @return SolverResult
+   */
   template <numcepts::ScalarType scalar, typename Operator>
-  SolverResult gmres(size_t n, scalar *x, Operator &&A, const scalar *b, gmres_options<numcepts::precision_t<scalar>> options = {})
+  SolverResult gmres(size_t n, scalar *_x, Operator &&A, const scalar *_b, gmres_options<numcepts::precision_t<scalar>> options = {})
   {
     using namespace tensor;
     using real = numcepts::precision_t<scalar>;
     constexpr real one = 1, zero = 0;
 
-    real bnrm = norm(n, b);
-
     const size_t m = options.restart;
     const size_t m1 = m + 1;
 
-    Vector<scalar> r(n);
+    auto x = reshape(_x, n);
+    auto b = reshape(_b, n);
+
+    real bnrm = norm(b);
+
     Matrix<scalar> V(n, m1);
     Matrix<scalar> H(m1, m);
     Vector<scalar> sn(m);
     Vector<scalar> cs(m);
     Vector<scalar> η(m1);
+
+    auto r = reshape(V.data(), n); // r is the first column of V.
 
     SolverResult result;
     result.residual_norm.reserve(options.maximum_iterations + 1);
@@ -78,11 +94,11 @@ namespace linsol
     result.num_matvec = 0;
     result.flag = 1;
 
-    A(x, r.data());
+    A(x.data(), r.data());
     result.num_matvec++;
 
     for (size_t i = 0; i < n; ++i)
-      r[i] = b[i] - r[i];
+      r(i) = b(i) - r(i);
 
     real rnrm = norm(r);
 
@@ -162,11 +178,11 @@ namespace linsol
         }
       }
 
-      A(x, r.data());
+      A(x.data(), r.data());
       result.num_matvec++;
 
       for (size_t i = 0; i < n; ++i)
-        r(i) = b[i] - r(i);
+        r(i) = b(i) - r(i);
 
       rnrm = norm(r);
       result.residual_norm.push_back((double)rnrm);
@@ -214,6 +230,22 @@ namespace linsol
     return result;
   }
 
+  /**
+   * @brief solves A * x = b using the generalized minimal residual method with preconditioner M.
+   *
+   * @details Note that this is equivalent to solving M^{-1} A x = M^{-1} b. Therefore, if it is more efficient to combine M and A into a single operator, then do so.
+   *
+   * @tparam scalar float, double, complex<float>, complex<double>
+   * @tparam Operator invocable
+   * @tparam Precond invocable
+   * @param n number of unkowns. Length of x and r.
+   * @param x array of length n. On entry, initial guess. On exit, solution.
+   * @param A invocable object that computes A * x. Signature: void A(const scalar *x, scalar *y) such that y = A * x.
+   * @param b array of length n. The right hand side b.
+   * @param M preconditioner. Invocable object that solves M y == x. Signature: void M(const scalar *x, scalar *y) such that y = M \ x.
+   * @param options
+   * @return SolverResult
+   */
   template <numcepts::ScalarType scalar, typename Operator, typename Precond>
   SolverResult gmres(size_t n, scalar *x, Operator &&A, const scalar *b, Precond &&M, gmres_options<numcepts::precision_t<scalar>> options = {})
   {

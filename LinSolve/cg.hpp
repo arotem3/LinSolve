@@ -19,8 +19,22 @@ namespace linsol
     int verbose = 0;
   };
 
+  /**
+   * @brief Solves A * x == b with the conjugate gradient method.
+   *
+   * @tparam scalar float, double, complex<...>
+   * @tparam Operator invocable
+   * @tparam Preconditioner invocable
+   * @param n number of unknowns (length of x and r)
+   * @param x array of length n. On entry, x is an initial guess for the solution (or zeros). On exit, x is overwritten with the solution found by conjugate gradient.
+   * @param A computes the action of A. Invocable like: A(const scalar *x, scalar *y). The result is y <- A * x.
+   * @param r array of length n. On entry, r is the residual b - A * x for the initial x (or just b if x is initialized to zero). On exit, r is overwritten with the final residual.
+   * @param M preconditioner. Invocable like: M(const scalar *x, scalar *y). The result is y <- M \ x. Where M approximates A.
+   * @param options
+   * @return SolverResult
+   */
   template <numcepts::ScalarType scalar, typename Operator, typename Preconditioner>
-  SolverResult cg(size_t n, scalar *x, Operator &&A, const scalar *b, Preconditioner &&M, cg_options<numcepts::precision_t<scalar>> options = {})
+  SolverResult cg(size_t n, scalar *_x, Operator &&A, scalar *_r, Preconditioner &&M, cg_options<numcepts::precision_t<scalar>> options = {})
   {
     using namespace tensor;
     using real = numcepts::precision_t<scalar>;
@@ -31,16 +45,11 @@ namespace linsol
     result.residual_norm.reserve(options.maximum_iterations);
     result.time.reserve(options.maximum_iterations);
 
-    Vector<scalar> r(n);
     Vector<scalar> p(n);
     Vector<scalar> z(n);
     Vector<scalar> Ap(n);
-
-    A(x, r.data());
-    result.num_matvec++;
-
-    for (size_t i = 0; i < n; ++i)
-      r[i] = b[i] - r[i];
+    auto r = reshape(_r, n);
+    auto x = reshape(_x, n);
 
     M(r.data(), z.data());
 
@@ -59,7 +68,7 @@ namespace linsol
     }
 
     real rnrm = std::sqrt(ρ);
-    const real bnrm = norm(n, b);
+    const real bnrm = rnrm;
 
     result.residual_norm.push_back((double)rnrm);
     result.time.push_back(0.0);
@@ -137,11 +146,11 @@ namespace linsol
       if (options.verbose == 1)
       {
         ++bar;
-        std::cout << bar.get() << " : (r, M⁻¹ r) / ||b|| = " << std::setw(10) << rnrm / bnrm << "\r" << std::flush;
+        std::cout << bar.get() << " : (r, M \\ r) / ||b|| = " << std::setw(10) << rnrm / bnrm << "\r" << std::flush;
       }
       else if (options.verbose >= 2)
       {
-        std::cout << "iteration " << std::setw(10) << it + 1 << " / " << options.maximum_iterations << " : (r, M⁻¹ r) / ||b|| = " << std::setw(10) << rnrm / bnrm << std::endl;
+        std::cout << "iteration " << std::setw(10) << it + 1 << " / " << options.maximum_iterations << " : (r, M \\ r) / ||b|| = " << std::setw(10) << rnrm / bnrm << std::endl;
       }
 
       if (rnrm < options.relative_tolerance * bnrm + options.absolute_tolerance)
@@ -173,8 +182,20 @@ namespace linsol
     return result;
   }
 
+  /**
+   * @brief Solves A * x == b with the conjugate gradient method.
+   *
+   * @tparam scalar float, double, complex<...>
+   * @tparam Operator invocable
+   * @param n number of unknowns (length of x and r).
+   * @param x array of length n. On entry, x is an initial guess for the solution (or zeros). On exit, x is overwritten with the solution found by conjugate gradient.
+   * @param A computes the action of A. Invocable like: A(const scalar *x, scalar *y). The result is y <- A * x.
+   * @param r array of length n. On entry, r is the residual b - A * x for the initial x (or just b if x is initialized to zero). On exit, r is overwritten with the final residual.
+   * @param options
+   * @return SolverResult
+   */
   template <numcepts::ScalarType scalar, typename Operator>
-  SolverResult cg(size_t n, scalar *x, Operator &&A, const scalar *b, cg_options<numcepts::precision_t<scalar>> options = {})
+  SolverResult cg(size_t n, scalar *_x, Operator &&A, scalar *_r, cg_options<numcepts::precision_t<scalar>> options = {})
   {
     using namespace tensor;
     using real = numcepts::precision_t<scalar>;
@@ -185,22 +206,17 @@ namespace linsol
     result.residual_norm.reserve(options.maximum_iterations);
     result.time.reserve(options.maximum_iterations);
 
-    Vector<scalar> r(n);
     Vector<scalar> p(n);
     Vector<scalar> Ap(n);
-
-    A(x, r.data());
-    result.num_matvec++;
-
-    for (size_t i = 0; i < n; ++i)
-      r[i] = b[i] - r[i];
+    auto r = reshape(_r, n);
+    auto x = reshape(_x, n);
 
     for (size_t i = 0; i < n; ++i)
       p[i] = r[i];
 
     real ρ = std::real(dot(r, r));
     real rnrm = std::sqrt(ρ);
-    const real bnrm = norm(n, b);
+    const real bnrm = rnrm;
 
     result.residual_norm.push_back((double)rnrm);
     result.time.push_back(0.0);

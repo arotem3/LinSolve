@@ -59,6 +59,7 @@ static int pcg_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<sc
     u = randu<scalar>();
 
   A(y, b);
+  real bnrm = norm(b);
 
   auto result = cg(n, x.data(), A, b.data(), M, {.maximum_iterations = 100, .relative_tolerance = rtol, .absolute_tolerance = atol, .verbose = 1});
 
@@ -66,7 +67,6 @@ static int pcg_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<sc
     x(i) -= y(i);
 
   real error = norm(x);
-  real bnrm = norm(b);
   real q = 4.9e2; // ||e|| <= q * √(r, M\r)
 
   real tol = q * (bnrm * rtol + atol);
@@ -103,6 +103,7 @@ static int cg_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<sca
     u = randu<scalar>();
 
   A(y, b);
+  real bnrm = norm(b);
 
   auto result = cg(n, x.data(), A, b.data(), {.maximum_iterations = 100, .relative_tolerance = rtol, .absolute_tolerance = atol, .verbose = 1});
 
@@ -110,7 +111,6 @@ static int cg_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<sca
     x(i) -= y(i);
 
   real error = norm(x);
-  real bnrm = norm(b);
   real q = 1.1e3; // ||e|| <= q * ||r||
 
   real tol = q * (bnrm * rtol + atol);

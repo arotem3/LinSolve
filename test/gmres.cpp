@@ -51,6 +51,7 @@ static int gmres_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<
     u = randu<scalar>();
 
   A(y, b);
+  real bnrm = norm(b);
 
   auto result = gmres(n, x.data(), A, b.data(), M, {.maximum_iterations = 1000, .relative_tolerance = rtol, .absolute_tolerance = atol, .verbose = 1});
 
@@ -58,7 +59,6 @@ static int gmres_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<
     x(i) -= y(i);
 
   real error = norm(x);
-  real bnrm = norm(b);
   real invA = 33.0; // upper estimate of the norm of inv(A).
 
   // ||e|| = ||inv(A)*r|| <= ||inv(A)||*||r|| <= ||inv(A)||*(||b||*rtol + atol)
