@@ -39,6 +39,9 @@ target_include_directories(linsolve PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # Link the LAPACK library
 target_link_libraries(linsolve PRIVATE LAPACK::LAPACK)
 
+# Link the TensorView library
+target_link_libraries(linsolve PUBLIC tensor_view)
+
 # Set compile options
 target_compile_options(linsolve
     PRIVATE
