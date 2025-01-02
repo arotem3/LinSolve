@@ -38,65 +38,61 @@ namespace linsol
     return std::sqrt(x);
   }
 
-  template <numcepts::ScalarType scalar>
-  numcepts::precision_t<scalar> norm(size_t n, const scalar *x, size_t stride = 1)
+  class BLAS
   {
-    using real = numcepts::precision_t<scalar>;
-
-    real s = 0.0;
-    for (size_t i = 0; i < n; i++)
+  public:
+    // returns x^H * y
+    template <numcepts::ScalarType scalar>
+    static scalar dot(int n, const scalar *x, int incx, const scalar *y, int incy)
     {
-      if constexpr (numcepts::is_complex_v<scalar>)
-        s += square(std::real(x[i])) + square(std::imag(x[i]));
-      else
-        s += square(x[i]);
+      scalar s = 0;
+      for (int i = 0; i < n; ++i)
+        s += linsol::conj(x[i * incx]) * y[i * incy];
+      return s;
     }
 
-    return std::sqrt(s);
-  }
-
-  template <typename View>
-  auto norm(const View &x)
-  {
-    using scalar = numcepts::value_t<View>;
-    using real = numcepts::precision_t<View>;
-
-    real s = 0;
-    for (scalar z : x)
+    // returns ||x||_2
+    template <numcepts::ScalarType scalar>
+    static numcepts::precision_t<scalar> norm(int n, const scalar *x, int incx)
     {
-      if constexpr (numcepts::is_complex_v<scalar>)
-        s += square(std::real(z)) + square(std::imag(z));
-      else
-        s += square(z);
+      using real = numcepts::precision_t<scalar>;
+
+      real s = 0.0;
+      for (int i = 0; i < n; i++)
+      {
+        if constexpr (numcepts::is_complex_v<scalar>)
+          s += square(std::real(x[i * incx])) + square(std::imag(x[i * incx]));
+        else
+          s += square(x[i * incx]);
+      }
+
+      return std::sqrt(s);
     }
 
-    return std::sqrt(s);
-  }
+    // y <- alpha * x + y
+    template <numcepts::ScalarType scalar>
+    static void axpy(int n, scalar alpha, const scalar *x, int incx, scalar *y, int incy)
+    {
+      for (int i = 0; i < n; ++i)
+        y[i * incy] += alpha * x[i * incx];
+    }
 
-  template <numcepts::ScalarType scalar>
-  scalar dot(size_t n, const scalar *x, const scalar *y, size_t stride_x = 1, size_t stride_y = 1)
-  {
-    scalar s = 0;
-    for (size_t i = 0; i < n; ++i)
-      s += linsol::conj(x[i * stride_x]) * y[i * stride_y];
-    return s;
-  }
+    // x <- alpha * x
+    template <numcepts::ScalarType scalar>
+    static void scal(int n, scalar alpha, scalar *x, int incx)
+    {
+      for (int i = 0; i < n; ++i)
+        x[i * incx] *= alpha;
+    }
 
-  template <typename ViewX, typename ViewY>
-  auto dot(const ViewX &x, const ViewY &y)
-  {
-    using scalar = std::common_type_t<numcepts::value_t<ViewX>, numcepts::value_t<ViewY>>;
-
-    size_t n = x.size();
-    if (n != y.size())
-      throw std::invalid_argument("Vectors must be of the same size");
-
-    scalar s = 0;
-    for (size_t k = 0; k < n; ++k)
-      s += linsol::conj(x[k]) * y[k];
-
-    return s;
-  }
+    // y <- x
+    template <numcepts::ScalarType scalar>
+    static void copy(int n, const scalar *x, int incx, scalar *y, int incy)
+    {
+      for (int i = 0; i < n; ++i)
+        y[i * incy] = x[i * incx];
+    }
+  };
 
 } // namespace linsol
 

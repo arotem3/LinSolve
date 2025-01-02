@@ -51,14 +51,14 @@ static int gmres_test(numcepts::precision_t<scalar> rtol, numcepts::precision_t<
     u = randu<scalar>();
 
   A(y, b);
-  real bnrm = norm(b);
+  real bnrm = BLAS::norm(n, b.data(), 1);
 
   auto result = gmres(n, x.data(), A, b.data(), M, {.maximum_iterations = 1000, .relative_tolerance = rtol, .absolute_tolerance = atol, .verbose = 1});
 
   for (size_t i = 0; i < n; ++i)
     x(i) -= y(i);
 
-  real error = norm(x);
+  real error = BLAS::norm(n, x.data(), 1);
   real invA = 33.0; // upper estimate of the norm of inv(A).
 
   // ||e|| = ||inv(A)*r|| <= ||inv(A)||*||r|| <= ||inv(A)||*(||b||*rtol + atol)
