@@ -133,7 +133,7 @@ namespace linsol
       auto r = reshape(V.data(), n); // r is the first column of V.
 
       SolverResult result;
-      result.residual_norm.reserve(options.maximum_iterations + 1);
+      result.residual_norm.reserve(options.maximum_iterations * options.restart + 1);
       result.time.reserve(options.maximum_iterations + 1);
       result.num_iter = 0;
       result.num_matvec = 0;
@@ -208,7 +208,10 @@ namespace linsol
           η(k1) = -sn(k) * η(k);
           η(k) = cs(k) * η(k);
 
-          if (std::abs(η(k1)) < options.relative_tolerance * bnrm + options.absolute_tolerance)
+          rnrm = std::abs(η(k1));
+          result.residual_norm.push_back((double)rnrm);
+
+          if (rnrm < options.relative_tolerance * bnrm + options.absolute_tolerance)
             break;
         }
 
@@ -226,7 +229,7 @@ namespace linsol
         blas.axpy(n, one, b, 1, r.data(), 1);
 
         rnrm = blas.norm(n, r.data(), 1);
-        result.residual_norm.push_back((double)rnrm);
+        result.residual_norm.back() = (double)rnrm; // more numerically stable than computing from η.
 
         auto t1 = std::chrono::high_resolution_clock::now();
         double dur = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
